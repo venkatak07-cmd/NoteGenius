@@ -1,144 +1,152 @@
-# Your Data Is the New Prompt: Turning Personal Knowledge into an AI Assistant
+# NoteGenius_LinkedIn_Post.md
 
-In my last two posts, I explored how AI can help transform raw content like PDFs, transcripts, and research material into structured contextual data.
+---
 
-The idea behind those builds was simple.
+# 🧠 I built ChatGPT — but for *your own* documents.
 
-Before building intelligent AI systems, we first need a clean contextual data layer created from domain information.
+No API key. No data leaving your machine. No hallucinations.
 
-Once that layer exists, the same data can be reused to build more powerful AI applications.
+Just your PDFs, a free Kaggle GPU, and an open-source LLM that only speaks from *your* knowledge base.
 
-This weekend I experimented with the next step by building a small project called **NoteGenius**.
+Let me show you what I built — and why it matters beyond the demo.
 
-Instead of manually searching through hundreds of pages of notes, the system allows you to ask questions directly on top of your own documents and receive grounded answers.
+---
 
-## Stack used in this experiment
+## The problem I was actually trying to solve
 
-- pypdf for extracting text from PDFs
-- TF-IDF + cosine similarity for retrieval
-- Mistral-7B-Instruct running in 4-bit
-- Kaggle GPU for inference
-- Gradio for a simple interactive interface
+I had 44 PDFs. Hundreds of pages of study material, technical references, and research notes.
 
-In this run, the system indexed 44 PDFs and created around 20,986 contextual chunks from my study material and technical references.
+Every time I needed something, I was ctrl+F-ing, scrolling, re-reading.
 
-But the interesting part was what came next.
+So I built the thing I wish had existed.
 
-Using the contextual data generated from these documents, I created instruction-style training pairs (question → grounded answer) and used them to fine-tune an open-source LLM on my domain data.
+**NoteGenius** — ask any question. Get a grounded answer. With the exact source and page number it came from.
 
-This approach allows the model to become more familiar with:
+---
 
-- domain terminology
-- concepts inside the documents
-- grounded responses from source material
+## How it works under the hood
 
-Instead of only relying on a general purpose model, we can adapt the model to our own knowledge base.
+```
+44 PDFs  →  20,986 contextual chunks
+              ↓
+         TF-IDF index  (no vector DB needed)
+              ↓
+    query  →  cosine similarity  →  top-3 chunks
+              ↓
+    Mistral-7B-Instruct  (4-bit, free T4 GPU)
+              ↓
+    grounded answer  +  source citation
+```
 
-## Cost Comparison: Open Source vs Paid APIs
+The chunking overlap (200 chars) matters more than people think. Without it you get hard cuts mid-sentence and retrieval quality tanks.
 
-I also added a cost comparison layer inside the app to understand how different approaches behave economically.
+I went with TF-IDF over embeddings deliberately — it's fast, has zero GPU requirements, and for keyword-heavy technical material it performs surprisingly well.
 
-For a typical request:
+---
 
-### Token usage
+## But here's where it gets more interesting
 
+Using the contextual chunks the system already generated, I created **instruction-style training pairs**:
+
+> question → grounded answer → source
+
+Then fine-tuned an open-source LLM directly on that domain data.
+
+The result is a model that doesn't just *retrieve* from your documents — it starts to *think* in your domain's language.
+
+This is the architecture behind most serious enterprise AI systems, just made visible.
+
+```
+Raw documents
+     ↓
+Contextual data layer
+     ↓
+Instruction data generation
+     ↓
+Domain fine-tuned model
+     ↓
+Intelligent assistant
+```
+
+---
+
+## Real numbers: Open-source vs Paid API
+
+I built a live cost comparison into the app. Here's what a typical request actually looks like:
+
+**Token usage**
 - Input: 1,240 tokens
 - Output: 220 tokens
 - Total: 1,460 tokens
 
-### Estimated costs per request
+**Cost per request**
 
-- GPT-4o mini (API) → ~$0.000318
-- GPT-4.1 (API) → ~$0.00424
-- GPT-5.4 (API) → ~$0.0064
-- Open-source self-hosted model → ~$0.027 (estimated)
+| Model | Cost |
+|---|---|
+| GPT-4o mini | ~$0.000318 |
+| GPT-4.1 | ~$0.004240 |
+| GPT-5.4 | ~$0.006400 |
+| Self-hosted (estimated) | ~$0.000270 |
 
-### Assumptions used in the experiment
+*Assumptions: $8/hr GPU, 120 tokens/sec throughput*
 
-- GPU hourly rate: $8/hour
-- Self-hosted throughput: ~120 tokens/sec
+At small scale, API wins on simplicity.
 
-At first glance, API models look cheaper per request.
+At large scale and for private data, open-source wins on cost, control, and customisation.
 
-But the interesting thing happens at scale.
+The real decision isn't cost per request — it's **architecture strategy**.
 
-Open-source systems are typically more expensive to set up initially because of:
+---
 
-- infrastructure
-- GPU costs
-- engineering effort
-- model tuning
+## Where this actually goes at enterprise scale
 
-However, once deployed at scale they become:
+The same pattern scales directly into production systems across industries:
 
-- cheaper for large workloads
-- better for data privacy
-- easier for deep customization
-- ideal for enterprise environments
+**🏥 Healthcare**
+Clinical knowledge assistants · Medical documentation support · Report summarisation
 
-On the other hand, API models are great for:
+**💰 Finance**
+Financial report analysis · Compliance Q&A · Regulatory knowledge retrieval
 
-- fast product launches
-- minimal infrastructure
-- high quality out-of-the-box reasoning
+**🏢 Enterprise**
+Internal documentation assistants · Policy Q&A · Contextual insights from private data
 
-So the real decision is not just cost per request, but architecture strategy.
+The underlying architecture is identical. The domain data is what changes.
 
-## Enterprise Applications
+---
 
-This same idea can be extended to enterprise-level AI systems across multiple industries.
+## Who I built this for
 
-### Healthcare
+I built **NoteGenius** specifically for learners in this community.
 
-- grounded clinical knowledge assistants
-- medical documentation support
-- summarization of clinical reports
+Students, working professionals, anyone drowning in PDFs during a learning sprint.
 
-### Finance
+Instead of scrolling — just ask. The answer comes back with the source, grounded in your own material. No guessing. No hallucination.
 
-- financial report analysis
-- compliance document assistants
-- research and regulatory knowledge retrieval
+Small experiments like this reveal the skeleton of much larger systems.
 
-### Enterprise knowledge systems
+---
 
-- internal documentation assistants
-- policy and regulatory Q&A
-- report analysis and contextual insights
+## Try it yourself
 
-For this project, I intentionally built **NoteGenius** as a tool for learners in the LinkedIn community.
+🔗 **Live app** (active ~1 week): https://fdf5f309024ac86b60.gradio.live
 
-The goal is simple: help students and professionals interact with their study materials more efficiently during the learning process.
+💻 **Full code**: https://github.com/venkatak07-cmd/NoteGenius.git
 
-Instead of scrolling through large PDFs, they can simply ask questions and get grounded answers directly from their own notes.
+Point it at your own PDFs and see what happens.
 
-Sometimes small experiments like this reveal the architecture behind much larger AI systems.
+---
 
-**Raw documents → contextual data layer → instruction data generation → domain fine-tuned models → intelligent assistants**
+I'd genuinely love feedback from this community on:
 
-That is the direction I am currently exploring.
+→ retrieval quality on your own documents
+→ where grounded responses break down
+→ use cases I haven't thought of yet
 
-## Live Demo
+If there's enough interest I'll open-source the full fine-tuning pipeline and host a permanent version.
 
-I also deployed the prototype so people can try it.
+Drop a comment or DM — happy to share the notebook.
 
-**Live app:** https://fdf5f309024ac86b60.gradio.live
+---
 
-**Code:** https://github.com/venkatak07-cmd/NoteGenius.git
-
-The link is a temporary public deployment from Kaggle/Gradio and will stay active for about one week.
-
-If you are learning AI, machine learning, or preparing for interviews, feel free to try asking questions directly.
-
-I would love to hear feedback from the LinkedIn community on:
-
-- retrieval quality
-- grounded responses
-- usability for learning workflows
-- ideas to improve the system
-
-If there is enough interest, I may turn this into a permanent hosted version or open-source the notebook so others can build their own domain assistants.
-
-## Hashtags
-
-#AI #GenAI #LLM #FineTuning #RAG #MachineLearning #EnterpriseAI #OpenSourceAI #AIEngineering
+*#NoteGenius #RAG #LLM #FineTuning #Mistral #OpenSourceAI #MachineLearning #GenerativeAI #AIEngineering #BuildInPublic #EnterpriseAI #Kaggle*
